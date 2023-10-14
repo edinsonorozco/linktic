@@ -1,0 +1,64 @@
+#para controlar que esten corriendo los contenedores
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producto
+spec:
+  selector:
+    matchLabels:
+      app: producto
+  template:
+    metadata:
+      labels:
+        app: producto
+    spec:
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: productopvc
+      containers:
+      - name: producto
+        image: producto:latest
+        env:
+          - name: DATABASEURL
+            value: 'jdbc:postgresql://bd-dev:5432/linktic?useSSL=true?requireSSL=true'
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8081
+---
+#Toma los contenedores y exponga el puerto 8081 opara que alguien lo utilice
+apiVersion: v1
+kind: Service
+metadata:
+  name: producto
+spec:
+  selector:
+    app: producto
+  ports:
+  - port: 8081
+    targetPort: 8081
+---
+#Se crea particion o disco de 10GB de lectura y escritura y lo estoy montando en el contenedor
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: productopvc
+spec:
+  resources:
+    requests:
+      storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+---
+#Se crea secreto que tiene un password y password tiene un valor
+apiVersion: v1
+kind: Secret
+metadata:
+  name: productosecret
+type: Opaque
+data:
+  password: Fela2018
